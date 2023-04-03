@@ -12,59 +12,54 @@ const url = require('rollup-plugin-url');
 const entryManifest = require('./plugins/entryManifest');
 const pkg = require('./package.json');
 
-const buildId =
-  process.env.BUILD_ID ||
-  execSync('git rev-parse --short HEAD').toString().trim();
-
 const manifest = entryManifest();
 
-const client = ['browse', 'main'].map(entryName => {
-  return {
-    external: ['@emotion/core', 'react', 'react-dom'],
-    input: `modules/client/${entryName}.js`,
-    output: {
-      format: 'iife',
-      dir: 'public/_client',
-      entryFileNames: '[name]-[hash].js',
-      globals: {
-        react: 'React',
-        'react-dom': 'ReactDOM',
-        '@emotion/core': 'emotionCore'
-      }
-    },
-    moduleContext: {
-      'node_modules/react-icons/lib/esm/iconBase.js': 'window'
-    },
-    plugins: [
-      manifest.record({ publicPath: '/_client/' }),
-      babel({ exclude: /node_modules/ }),
-      json(),
-      resolve(),
-      commonjs({
-        namedExports: {
-          'node_modules/react/index.js': [
-            'createContext',
-            'createElement',
-            'forwardRef',
-            'Component',
-            'Fragment'
-          ]
-        }
-      }),
-      replace({
-        'process.env.BUILD_ID': JSON.stringify(buildId),
-        'process.env.NODE_ENV': JSON.stringify(
-          process.env.NODE_ENV || 'development'
-        )
-      }),
-      url({
-        limit: 5 * 1024,
-        publicPath: '/_client/'
-      }),
-      compiler()
-    ]
-  };
-});
+// const client = ['browse', 'main'].map(entryName => {
+//   return {
+//     external: ['@emotion/core', 'react', 'react-dom'],
+//     input: `modules/client/${entryName}.js`,
+//     output: {
+//       format: 'iife',
+//       dir: 'public/_client',
+//       entryFileNames: '[name]-[hash].js',
+//       globals: {
+//         react: 'React',
+//         'react-dom': 'ReactDOM',
+//         '@emotion/core': 'emotionCore'
+//       }
+//     },
+//     moduleContext: {
+//       'node_modules/react-icons/lib/esm/iconBase.js': 'window'
+//     },
+//     plugins: [
+//       manifest.record({ publicPath: '/_client/' }),
+//       babel({ exclude: /node_modules/ }),
+//       json(),
+//       resolve(),
+//       commonjs({
+//         namedExports: {
+//           'node_modules/react/index.js': [
+//             'createContext',
+//             'createElement',
+//             'forwardRef',
+//             'Component',
+//             'Fragment'
+//           ]
+//         }
+//       }),
+//       replace({
+//         'process.env.NODE_ENV': JSON.stringify(
+//           process.env.NODE_ENV || 'development'
+//         )
+//       }),
+//       url({
+//         limit: 5 * 1024,
+//         publicPath: '/_client/'
+//       }),
+//       compiler()
+//     ]
+//   };
+// });
 
 const dependencies = (process.env.NODE_ENV === 'development'
   ? Object.keys(pkg.dependencies).concat(Object.keys(pkg.devDependencies || {}))
@@ -89,10 +84,7 @@ const server = {
       publicPath: '/_client/',
       emitFiles: false
     }),
-    replace({
-      'process.env.BUILD_ID': JSON.stringify(buildId)
-    })
   ]
 };
 
-module.exports = client.concat(server);
+module.exports = server;

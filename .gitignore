@@ -3,8 +3,9 @@
 firebase-debug.log*
 npm-debug.log*
 
+.vscode
 /.env
-/node_modules/
+node_modules
 /public/_client/
 /secrets.tar
 /server.js

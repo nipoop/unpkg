@@ -5,6 +5,11 @@ import LRUCache from 'lru-cache';
 
 import bufferStream from './bufferStream.js';
 
+import scopes, { privateNpmRegistryURL } from '../../npmConfig';
+
+// npm 私库地址
+const npmRegistryURLPrivate = privateNpmRegistryURL;
+
 const npmRegistryURL =
   process.env.NPM_REGISTRY_URL || 'https://registry.npmjs.org';
 
@@ -40,14 +45,29 @@ function encodePackageName(packageName) {
     : encodeURIComponent(packageName);
 }
 
+function getIsPrivate(packageName) {
+  return scopes.some(val => packageName.indexOf(val) !== -1)
+}
+
 async function fetchPackageInfo(packageName, log) {
   const name = encodePackageName(packageName);
-  const infoURL = `${npmRegistryURL}/${name}`;
+  const isPrivatePage = getIsPrivate(packageName);
+  let infoURL;
+  let options;
+
+  if (isPrivatePage) {
+    infoURL = `${npmRegistryURLPrivate}/${name}`
+  } else {
+    infoURL = `${npmRegistryURL}/${name}`;
+
+  }
+
 
   log.debug('Fetching package info for %s from %s', packageName, infoURL);
 
   const { hostname, pathname } = url.parse(infoURL);
-  const options = {
+  console.log('hostname', hostname, pathname)
+  options = {
     agent: agent,
     hostname: hostname,
     path: pathname,
@@ -57,7 +77,7 @@ async function fetchPackageInfo(packageName, log) {
   };
 
   const res = await get(options);
-
+  console.log('res', JSON.stringify(res.statusCode))
   if (res.statusCode === 200) {
     return bufferStream(res).then(JSON.parse);
   }
@@ -92,7 +112,6 @@ async function fetchVersionsAndTags(packageName, log) {
 export async function getVersionsAndTags(packageName, log) {
   const cacheKey = `versions-${packageName}`;
   const cacheValue = cache.get(cacheKey);
-
   if (cacheValue != null) {
     return cacheValue === notFound ? null : JSON.parse(cacheValue);
   }
@@ -169,7 +188,15 @@ export async function getPackage(packageName, version, log) {
   const tarballName = isScopedPackageName(packageName)
     ? packageName.split('/')[1]
     : packageName;
-  const tarballURL = `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
+  let tarballURL;
+  const isPrivatePage = getIsPrivate(packageName)
+
+  if (isPrivatePage) {
+    tarballURL = `${npmRegistryURLPrivate}/${packageName}/-/${packageName}-${version}.tgz`
+  } else {
+    tarballURL = `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
+  }
+  console.log('tarballURL', tarballURL);
 
   log.debug('Fetching package for %s from %s', packageName, tarballURL);
 
